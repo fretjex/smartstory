@@ -1,112 +1,398 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>SUBTLEX-CH Top 100 Quiz</title>
-<style>
-body { font-family: sans-serif; text-align: center; margin: 20px; }
-h1 { margin-bottom: 20px; }
-.char { font-size: 60px; margin: 30px; }
-.instructions { font-size: 16px; margin-bottom: 20px; color: #333; }
-.grid { display: grid; grid-template-columns: repeat(10, 64px); gap: 8px; justify-content: center; margin-top: 20px; }
-.cell { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 30px; border-radius: 10px; }
-.a { background: #63C384; } /* know well */
-.b { background: #FFD966; } /* review */
-.c { background: #FF7373; } /* don't know */
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SUBTLEX-CH Top 100 — Quiz (Firebase)</title>
+  <style>
+    :root{
+      --bg:#fbfbfb; --fg:#111;
+      --green:#63C384; --yellow:#FFD966; --red:#FF7373; --neutral:#eee;
+      --cell:60px;
+    }
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial; margin:18px; background:var(--bg); color:var(--fg)}
+    h1{margin:.1rem 0}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .card{background:white;padding:12px;border-radius:10px;box-shadow:0 8px 22px rgba(12,18,30,.06)}
+    label{display:block;margin:6px 0;font-size:14px}
+    input{padding:8px;border-radius:8px;border:1px solid #ddd;width:220px}
+    button{padding:8px 12px;border-radius:8px;border:1px solid rgba(0,0,0,.08);background:white;cursor:pointer}
+    button.primary{background:#0b7bd1;color:white;border:none}
+    .char{font-size:72px;text-align:center;padding:18px 0}
+    .instructions{font-size:14px;margin:8px 0;color:#444}
+    .grid{display:grid;grid-template-columns:repeat(10,var(--cell));gap:8px;margin-top:12px}
+    .cell{width:var(--cell);height:var(--cell);display:flex;align-items:center;justify-content:center;font-size:26px;border-radius:8px;border:1px solid rgba(0,0,0,.06);background:var(--neutral);cursor:default}
+    .a{background:var(--green)} .b{background:var(--yellow)} .c{background:var(--red)}
+    .footer{margin-top:14px;color:#666;font-size:13px}
+    .small{font-size:13px;color:#666}
+    .controls{display:flex;gap:8px;align-items:center}
+    @media (max-width:880px){ .grid{grid-template-columns:repeat(5,calc((100% - 40px)/5))} }
+  </style>
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
-<h1>SUBTLEX-CH Top 100 Quiz</h1>
+  <h1>SUBTLEX-CH Top 100 — Quiz</h1>
+  <div class="row" style="gap:18px;margin-bottom:12px">
+    <div class="card" id="authCard">
+      <div id="signedOutUI">
+        <div style="margin-bottom:8px" class="small">Sign up or sign in to save your progress across devices.</div>
+        <label>Email <input id="email" type="email" placeholder="you@example.com"></label>
+        <label>Password <input id="password" type="password" placeholder="min 6 chars"></label>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button id="registerBtn">Register</button>
+          <button class="primary" id="loginBtn">Login</button>
+        </div>
+        <div class="small" id="authMsg" style="margin-top:8px;color:#a33"></div>
+      </div>
 
-<div id="start">
-  <p>Press the arrow keys to answer:</p>
-  <ul class="instructions">
-    <li>← Left Arrow = Know well</li>
-    <li>↓ Down Arrow = Review</li>
-    <li>→ Right Arrow = Don't know</li>
-    <li>↑ Up Arrow = Undo previous answer</li>
-  </ul>
-  <button onclick="startQuiz()">Start Quiz</button>
-</div>
+      <div id="signedInUI" style="display:none">
+        <div class="small" id="userInfo"></div>
+        <div style="margin-top:6px;display:flex;gap:8px">
+          <button id="logoutBtn">Logout</button>
+          <button id="exportCsvBtn">Export CSV</button>
+        </div>
+      </div>
+    </div>
 
-<div id="quiz" style="display:none;">
-  <div class="char" id="char"></div>
-</div>
+    <div style="flex:1" class="card">
+      <div class="instructions">
+        Use arrow keys to answer during the quiz: <strong>←</strong> = Know well, <strong>↓</strong> = Review, <strong>→</strong> = Don't know. <strong>↑</strong> = Undo previous answer.
+      </div>
 
-<div id="results" style="display:none;">
-  <h2>Your Heatmap</h2>
-  <div class="grid" id="grid"></div>
-</div>
+      <div style="margin-top:8px" class="controls">
+        <label for="orderSelect">Order:</label>
+        <select id="orderSelect">
+          <option value="freq">Frequency</option>
+          <option value="shuffle">Shuffle</option>
+        </select>
+        <button class="primary" id="startBtn">Start Quiz</button>
+        <button id="resetBtn">Reset (local)</button>
+        <div style="margin-left:auto" class="small">Answers saved to your account automatically.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div id="quizArea" style="display:none">
+      <div class="char" id="currentChar">的</div>
+      <div style="text-align:center" class="small" id="progress">0 / 0</div>
+    </div>
+
+    <div id="heatmapArea" style="display:block;margin-top:12px">
+      <h3 style="margin:6px 0">Heatmap (live preview)</h3>
+      <div id="grid" class="grid"></div>
+      <div class="footer">Legend: green = know · yellow = review · red = don't know</div>
+    </div>
+  </div>
 
 <script>
-// Top 100 words from SUBTLEX-CH
-const words = [
+/* ============================
+   ===  CONFIG: FIREBASE  ===
+   ============================
+   Replace the firebaseConfig values below with your project's values
+   from the Firebase console (Project settings -> SDK).
+*/
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+/* ============================
+   ===  TOP 100 WORDS LIST  ===
+   ============================
+   (SUBTLEX-CH top words -- if you want different list, replace here)
+*/
+const TOP100 = [
   "的","一","是","不","了","在","人","有","我","他","这","个","们","中","来","上","大","为","和","国",
   "地","到","以","说","时","要","就","出","会","可","也","你","对","生","能","而","子","那","得","于",
   "着","下","自","之","年","过","发","后","作","里","用","道","行","所","然","家","种","事","成","方",
   "多","经","么","去","法","学","如","都","同","现","当","起","看","定","天","分","还","进","好","小",
   "部","其","些","主","样","理","心","她","本","前","开","但","因","只","从","想","实","日","作","用",
-  "种","长","问","面","总","得","再","并","回","点","看","力","表","新","同","意","想","同","过","家",
-  "事","子","学","心","人","学","问","事","面","总","得","再","并","回","点","看","力","表","新","同"
+  "种","长","问","面","总","得","再","并","回","点","看","力","表","新","同","意","想","同","过","家"
 ];
-let index = 0;
-let answers = [];
+// Ensure exactly 100 (repeat-trimming not necessary here); but we'll use first 100 if longer
+const WORDS = TOP100.slice(0, 100);
 
-function startQuiz() {
-  document.getElementById("start").style.display = "none";
-  document.getElementById("quiz").style.display = "block";
-  showWord();
-  window.addEventListener("keydown", handleKeyPress);
-}
+/* ============================
+   ===  App State  ============
+   ============================ */
+let user = null;                  // firebase user
+let answersMap = {};              // all saved answers for current user { word: "a"/"b"/"c" }
+let sessionQueue = [];            // words to be quizzed this session (unanswered ones)
+let sessionIndex = 0;             // current index in sessionQueue
+let sessionHistory = [];          // history of answers in this session [{word,category}]
+let orderMode = 'freq';           // 'freq' or 'shuffle'
+const gridEl = document.getElementById('grid');
+const currentCharEl = document.getElementById('currentChar');
+const progressEl = document.getElementById('progress');
 
-function showWord() {
-  if (index < words.length) {
-    document.getElementById("char").textContent = words[index];
+/* ============================
+   ===  AUTH UI wiring  ======
+   ============================ */
+const signedOutUI = document.getElementById('signedOutUI');
+const signedInUI = document.getElementById('signedInUI');
+const userInfoEl = document.getElementById('userInfo');
+const authMsgEl = document.getElementById('authMsg');
+
+document.getElementById('registerBtn').addEventListener('click', async ()=>{
+  authMsgEl.textContent = '';
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  if(!email || password.length < 6){ authMsgEl.textContent = 'Provide a valid email and password (min 6 chars).'; return; }
+  try {
+    await auth.createUserWithEmailAndPassword(email, password);
+    authMsgEl.textContent = 'Registered and signed in.';
+  } catch(e){ authMsgEl.textContent = e.message || 'Registration failed'; }
+});
+
+document.getElementById('loginBtn').addEventListener('click', async ()=>{
+  authMsgEl.textContent = '';
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+    authMsgEl.textContent = '';
+  } catch(e){ authMsgEl.textContent = e.message || 'Login failed'; }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+  await auth.signOut();
+});
+
+/* ============================
+   ===  Start / Controls  =====
+   ============================ */
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  orderMode = document.getElementById('orderSelect').value;
+  startSession();
+});
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  // local reset: clears session & history but does not delete server answers
+  sessionQueue = [];
+  sessionIndex = 0;
+  sessionHistory = [];
+  renderGrid();
+  document.getElementById('quizArea').style.display = 'none';
+});
+document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
+
+/* ============================
+   ===  Auth state watcher  ===
+   ============================ */
+auth.onAuthStateChanged(async (u) => {
+  user = u;
+  if(user){
+    signedOutUI.style.display = 'none';
+    signedInUI.style.display = 'block';
+    userInfoEl.textContent = `Signed in as ${user.email}`;
+    // load user's saved answers
+    await loadAnswersFromFirestore();
   } else {
-    finishQuiz();
+    signedOutUI.style.display = 'block';
+    signedInUI.style.display = 'none';
+    userInfoEl.textContent = '';
+    answersMap = {};
+    renderGrid();
+  }
+});
+
+/* ============================
+   ===  Firestore helpers  ====
+   ============================ */
+async function loadAnswersFromFirestore(){
+  if(!user) return;
+  try {
+    const doc = await db.collection('quiz_answers').doc(user.uid).get();
+    answersMap = doc.exists ? (doc.data().answers || {}) : {};
+  } catch(e){
+    console.error('Failed to load answers:', e);
+    answersMap = {};
+  }
+  renderGrid();
+}
+
+async function saveAnswerToFirestore(word, category){
+  if(!user) return; // if not signed in we won't persist
+  const ref = db.collection('quiz_answers').doc(user.uid);
+  const updateObj = { [`answers.${word}`]: category };
+  try {
+    await ref.set(updateObj, { merge: true });
+  } catch(e){
+    console.error('Failed to save answer:', e);
   }
 }
 
-function handleKeyPress(event) {
-  if (event.key === "ArrowLeft") {
-    recordAnswer("a");
-  } else if (event.key === "ArrowDown") {
-    recordAnswer("b");
-  } else if (event.key === "ArrowRight") {
-    recordAnswer("c");
-  } else if (event.key === "ArrowUp") {
-    undoAnswer();
+async function removeAnswerFromFirestore(word){
+  if(!user) return;
+  const ref = db.collection('quiz_answers').doc(user.uid);
+  const updateObj = { [`answers.${word}`]: firebase.firestore.FieldValue.delete() };
+  try {
+    await ref.update(updateObj);
+  } catch(e){
+    // if doc doesn't exist yet, set empty answers then delete (safe)
+    try { await ref.set({}); await ref.update(updateObj); } catch(err){ console.error('Failed to remove:', err); }
   }
 }
 
-function recordAnswer(category) {
-  answers.push({ word: words[index], category: category });
-  index++;
-  showWord();
+/* ============================
+   ===  Quiz flow  ============
+   ============================ */
+function buildSessionQueue(){
+  // words not present in answersMap
+  let remaining = WORDS.filter(w => !(w in answersMap));
+  if(orderMode === 'shuffle'){
+    for(let i=remaining.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [remaining[i],remaining[j]] = [remaining[j],remaining[i]];
+    }
+  }
+  return remaining;
 }
 
-function undoAnswer() {
-  if (answers.length > 0) {
-    index--;
-    answers.pop();
-    showWord();
+function startSession(){
+  sessionQueue = buildSessionQueue();
+  sessionIndex = 0;
+  sessionHistory = [];
+  if(sessionQueue.length === 0){
+    alert('You have already answered all current words. When more words are added, they will appear here.');
+    document.getElementById('quizArea').style.display = 'none';
+    return;
+  }
+  document.getElementById('quizArea').style.display = 'block';
+  updateUIForCurrent();
+  // focus for keyboard events
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* Answer categories: a=know, b=review, c=don't know */
+async function recordAnswer(category){
+  if(sessionIndex >= sessionQueue.length) return;
+  const word = sessionQueue[sessionIndex];
+  // store locally
+  answersMap[word] = category;
+  sessionHistory.push({ word, category });
+  // persist
+  await saveAnswerToFirestore(word, category);
+  // advance
+  sessionIndex++;
+  if(sessionIndex >= sessionQueue.length){
+    // session finished
+    document.getElementById('quizArea').style.display = 'none';
+    renderGrid();
+    alert('Session complete — heatmap updated.');
+  } else {
+    updateUIForCurrent();
   }
 }
 
-function finishQuiz() {
-  window.removeEventListener("keydown", handleKeyPress);
-  document.getElementById("quiz").style.display = "none";
-  document.getElementById("results").style.display = "block";
-  const grid = document.getElementById("grid");
-  answers.forEach(answer => {
-    const div = document.createElement("div");
-    div.className = "cell " + answer.category;
-    div.textContent = answer.word;
-    grid.appendChild(div);
-  });
+async function undoLast(){
+  if(sessionHistory.length === 0) {
+    // nothing to undo in this session: maybe user answered previously; we don't undo older saved answers here
+    return;
+  }
+  const last = sessionHistory.pop();
+  // remove from answersMap and firestore
+  delete answersMap[last.word];
+  await removeAnswerFromFirestore(last.word);
+  // put that word back to front of the queue and set index to it
+  sessionQueue.splice(sessionIndex, 0, last.word); // insert at current position (so it becomes current)
+  // sessionIndex remains the same (we will show the current inserted word)
+  updateUIForCurrent();
+  renderGrid();
 }
+
+/* ============================
+   ===  Keyboard handling  ====
+   ============================ */
+window.addEventListener('keydown', (e)=>{
+  // avoid when typing in inputs
+  const active = document.activeElement;
+  if(active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+  if(document.getElementById('quizArea').style.display === 'block'){
+    if(e.key === 'ArrowLeft'){ recordAnswer('a'); }
+    else if(e.key === 'ArrowDown'){ recordAnswer('b'); }
+    else if(e.key === 'ArrowRight'){ recordAnswer('c'); }
+    else if(e.key === 'ArrowUp'){ undoLast(); }
+  }
+});
+
+/* ============================
+   ===  UI helpers  ===========
+   ============================ */
+function updateUIForCurrent(){
+  const total = sessionQueue.length;
+  progressEl.textContent = `${Math.min(sessionIndex+1, total)} / ${total}`;
+  currentCharEl.textContent = sessionQueue[sessionIndex] || '';
+  renderGrid();
+}
+
+function renderGrid(){
+  gridEl.innerHTML = '';
+  // we want to show all WORDS in fixed order (frequency) for map clarity
+  const displayList = WORDS.slice(0, 100);
+  for(let i=0;i<displayList.length;i++){
+    const w = displayList[i];
+    const cls = answersMap[w] ? answersMap[w] : '';
+    const div = document.createElement('div');
+    div.className = 'cell ' + cls;
+    div.textContent = w;
+    div.title = cls ? (cls==='a' ? 'Know well' : cls==='b' ? 'Review' : 'Don\\'t know') : 'Unanswered';
+    // click cell to jump to quiz for that word (if unanswered)
+    div.addEventListener('click', ()=>{
+      if(answersMap[w]) return; // already answered
+      // put this word at front of sessionQueue and start session if necessary
+      const pos = sessionQueue.indexOf(w);
+      if(pos === -1) {
+        sessionQueue.splice(sessionIndex, 0, w);
+      } else {
+        // move to current index
+        sessionQueue.splice(pos, 1);
+        sessionQueue.splice(sessionIndex, 0, w);
+      }
+      document.getElementById('quizArea').style.display = 'block';
+      updateUIForCurrent();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    gridEl.appendChild(div);
+  }
+}
+
+/* ============================
+   ===  CSV Export  ===========
+   ============================ */
+function exportCSV(){
+  const rows = ['word,category'];
+  for(const w of WORDS){
+    rows.push(`${w},${answersMap[w] ? answersMap[w] : ''}`);
+  }
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'subtlex_ch_quiz_results.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ============================
+   ===  Initial render  =======
+   ============================ */
+renderGrid();
+
 </script>
-
 </body>
 </html>
