@@ -1,78 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>SUBTLEX-CH Top 50 Quiz</title>
-<style>
-body { font-family: sans-serif; text-align: center; margin: 20px; }
-h1 { margin-bottom: 20px; }
-.char { font-size: 60px; margin: 30px; }
-button { padding: 10px 20px; margin: 5px; font-size: 18px; border-radius: 8px; cursor:pointer; }
-.grid { display: grid; grid-template-columns: repeat(10, 64px); gap: 8px; justify-content: center; margin-top: 20px; }
-.cell { width: 64px; height: 64px; display:flex; align-items:center; justify-content:center; font-size:30px; border-radius:10px; }
-.a { background:#63C384; } /* know */
-.b { background:#FFD966; } /* review */
-.c { background:#FF7373; } /* don't know */
-</style>
+  <meta charset="UTF-8">
+  <title>SUBTLEX-CH Top 100 Quiz</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin: 20px; }
+    h1 { margin-bottom: 20px; }
+    .char { font-size: 60px; margin: 30px; }
+    button { padding: 10px 20px; margin: 5px; font-size: 18px; border-radius: 8px; cursor: pointer; }
+    .grid { display: grid; grid-template-columns: repeat(10, 64px); gap: 8px; justify-content: center; margin-top: 20px; }
+    .cell { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 30px; border-radius: 10px; }
+    .a { background: #63C384; } /* know */
+    .b { background: #FFD966; } /* review */
+    .c { background: #FF7373; } /* don't know */
+  </style>
 </head>
 <body>
 
-<h1>SUBTLEX-CH Top 50 Quiz</h1>
+<h1>SUBTLEX-CH Top 100 Quiz</h1>
 
 <div id="start">
-<p>Click below to start the quiz:</p>
-<button onclick="startQuiz()">Start Quiz</button>
+  <p>Press the arrow keys to answer:</p>
+  <p><strong>←</strong> = Know well, <strong>↓</strong> = Review, <strong>→</strong> = Don't know</p>
+  <button onclick="startQuiz()">Start Quiz</button>
 </div>
 
 <div id="quiz" style="display:none;">
-<div class="char" id="char"></div>
-<button onclick="answer('a')">a = Know well</button>
-<button onclick="answer('b')">b = Review</button>
-<button onclick="answer('c')">c = Don't know</button>
+  <div class="char" id="char"></div>
 </div>
 
 <div id="results" style="display:none;">
-<h2>Your Heatmap</h2>
-<div class="grid" id="grid"></div>
+  <h2>Your Heatmap</h2>
+  <div class="grid" id="grid"></div>
 </div>
 
 <script>
-const chars = ["的","一","是","不","了","在","人","有","我","他","这","个","们","中","来","上","大","为","和","国",
-               "地","到","以","说","时","要","就","出","会","可","也","你","对","生","能","而","子","那","得","于",
-               "着","下","自","之","年","过","发","后","作","里","用","道","行","所","然","家","种","事"];
+const words = [
+  "的", "一", "是", "不", "了", "在", "人", "有", "我", "他", "这", "个", "们", "中", "来", "上", "大", "为", "和", "国",
+  "地", "到", "以", "说", "时", "要", "就", "出", "会", "可", "也", "你", "对", "生", "能", "而", "子", "那", "得", "于",
+  "着", "下", "自", "之", "年", "过", "发", "后", "作", "里", "用", "道", "行", "所", "然", "家", "种", "事", "成", "方",
+  "多", "经", "么", "去", "法", "学", "如", "都", "同", "现", "当", "起", "看", "定", "天", "分", "还", "进", "好", "小",
+  "部", "其", "些", "主", "样", "理", "心", "她", "本", "前", "开", "但", "因", "只", "从", "想", "实", "日", "作", "用",
+  "种", "长", "问", "面", "总", "得", "再", "并", "回", "点", "看", "力", "表", "新", "同", "意", "想", "同", "过", "家",
+  "事", "子", "学", "心", "人", "学", "问", "事", "面", "总", "得", "再", "并", "回", "点", "看", "力", "表", "新", "同"
+];
 let index = 0;
 let answers = [];
 
-function startQuiz(){
-    document.getElementById("start").style.display = "none";
-    document.getElementById("quiz").style.display = "block";
-    showChar();
+function startQuiz() {
+  document.getElementById("start").style.display = "none";
+  document.getElementById("quiz").style.display = "block";
+  showWord();
+  window.addEventListener("keydown", handleKeyPress);
 }
 
-function showChar(){
-    if(index < chars.length){
-        document.getElementById("char").textContent = chars[index];
-    } else {
-        finishQuiz();
-    }
+function showWord() {
+  if (index < words.length) {
+    document.getElementById("char").textContent = words[index];
+  } else {
+    finishQuiz();
+  }
 }
 
-function answer(cat){
-    answers.push({char: chars[index], cat: cat});
-    index++;
-    showChar();
+function handleKeyPress(event) {
+  if (event.key === "ArrowLeft") {
+    recordAnswer("a");
+  } else if (event.key === "ArrowDown") {
+    recordAnswer("b");
+  } else if (event.key === "ArrowRight") {
+    recordAnswer("c");
+  }
 }
 
-function finishQuiz(){
-    document.getElementById("quiz").style.display = "none";
-    document.getElementById("results").style.display = "block";
-    const grid = document.getElementById("grid");
-    answers.forEach(a=>{
-        const div = document.createElement("div");
-        div.className = "cell " + a.cat;
-        div.textContent = a.char;
-        grid.appendChild(div);
-    });
+function recordAnswer(category) {
+  answers.push({ word: words[index], category: category });
+  index++;
+  showWord();
+}
+
+function finishQuiz() {
+  window.removeEventListener("keydown", handleKeyPress);
+  document.getElementById("quiz").style.display = "none";
+  document.getElementById("results").style.display = "block";
+  const grid = document.getElementById("grid");
+  answers.forEach(answer => {
+    const div = document.createElement("div");
+    div.className = "cell " + answer.category;
+    div.textContent = answer.word;
+    grid.appendChild(div);
+  });
 }
 </script>
 
