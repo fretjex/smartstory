@@ -1,84 +1,79 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>SUBTLEX-CH Top 50 Quiz — Heatmap</title>
-<style>
-  :root{
-    --bg:#fbfbfb; --fg:#111;
-    --green:#63C384; --yellow:#FFD966; --red:#FF7373; --neutral:#eee;
-    --cell:64px;
-  }
-  body{font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial; margin:20px; background:var(--bg); color:var(--fg);}
-  h1{margin:.1rem 0}
-  p.lead{margin-top:0;color:#444}
-  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 18px;align-items:center}
-  button,select{padding:8px 10px;border-radius:8px;border:1px solid rgba(0,0,0,.08);background:white;cursor:pointer}
-  .primary{background:linear-gradient(180deg,#1f9cff,#0b7bd1);color:white;border:none}
-  .controls{display:flex;gap:8px;align-items:center}
-  .quiz-area{display:flex;gap:18px;flex-wrap:wrap}
-  .panel{background:white;padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(12,18,30,.06);flex:1;min-width:280px}
-  .char-big{font-size:70px;text-align:center;padding:18px 0}
-  .choices{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-  .choices button{min-width:120px;padding:10px 14px;font-size:16px}
-  .grid{display:grid;grid-template-columns:repeat(10,var(--cell));gap:10px;margin-top:12px}
-  .cell{width:var(--cell);height:var(--cell);display:flex;align-items:center;justify-content:center;font-size:28px;border-radius:8px;border:1px solid rgba(0,0,0,.06);background:var(--neutral);cursor:default}
-  .a{background:var(--green)} .b{background:var(--yellow)} .c{background:var(--red)}
-  .meta{font-size:13px;color:#666;margin-top:8px}
-  .small{font-size:13px}
-  .actions{display:flex;gap:8px;flex-wrap:wrap}
-  .footer{margin-top:18px;color:#666;font-size:13px}
-  a.link{color:#0b7bd1}
-  @media (max-width:880px){ .grid{grid-template-columns:repeat(5,calc((100% - 40px)/5))} }
-</style>
+  <meta charset="UTF-8" />
+  <title>SUBTLEX-CH Top 50 Quiz</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; text-align: center; }
+    #quiz, #results { display: none; }
+    .char { font-size: 60px; margin: 30px; }
+    button { padding: 10px 20px; margin: 5px; font-size: 18px; border-radius: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(10, 64px); gap: 8px; justify-content: center; margin-top: 20px; }
+    .cell { width: 64px; height: 64px; display:flex;align-items:center;justify-content:center;font-size:30px;border-radius:10px; }
+    .a { background:#63C384; } /* know */
+    .b { background:#FFD966; } /* review */
+    .c { background:#FF7373; } /* don't know */
+  </style>
 </head>
 <body>
 
-<h1>SUBTLEX-CH Top 50 — Quiz & Heatmap</h1>
-<p class="lead">Quick self-check for the 50 most frequent Chinese characters (SUBTLEX-CH). Answer each character: <strong>a</strong> = know without hesitation, <strong>b</strong> = know but review, <strong>c</strong> = don't know yet.</p>
-
-<div class="toolbar">
-  <div class="controls">
-    <label for="order">Order:</label>
-    <select id="order">
-      <option value="freq">Frequency (fixed)</option>
-      <option value="shuffle">Shuffle</option>
-    </select>
-
-    <button id="start" class="primary">Start Quiz</button>
-    <button id="reset">Reset Answers</button>
-  </div>
-
-  <div style="margin-left:auto" class="actions">
-    <button id="exportCsv">Export CSV</button>
-    <button id="openHeatmap">Open Heatmap</button>
-    <button id="generateLink">Generate Share Link</button>
-  </div>
+<h1>SUBTLEX-CH Top 50 Quiz</h1>
+<div id="start">
+  <p>Test yourself on the 50 most frequent Chinese characters (SUBTLEX-CH).</p>
+  <button onclick="startQuiz()">Start Quiz</button>
 </div>
 
-<div class="quiz-area">
-  <div class="panel" style="flex-basis:360px">
-    <div id="quizIntro">
-      <p class="meta">Press the buttons or keys <kbd>A</kbd> / <kbd>B</kbd> / <kbd>C</kbd> to answer. Use <kbd>←</kbd> / <kbd>→</kbd> to go prev/next. Answers are saved locally in your browser until you reset or export.</p>
-    </div>
+<div id="quiz">
+  <div class="char" id="char"></div>
+  <button onclick="answer('a')">a = Know well</button>
+  <button onclick="answer('b')">b = Review</button>
+  <button onclick="answer('c')">c = Don't know</button>
+</div>
 
-    <div id="quiz" style="display:none">
-      <div class="char-big" id="currentChar">的</div>
-      <div style="text-align:center" id="counter">1 / 50</div>
-      <div class="choices" style="margin-top:10px">
-        <button data-val="a" class="a">A — Know (no hesitation)</button>
-        <button data-val="b" class="b">B — Review</button>
-        <button data-val="c" class="c">C — Don't know</button>
-      </div>
-      <div style="display:flex;gap:8px;justify-content:center;margin-top:10px">
-        <button id="prev">◀ Prev</button>
-        <button id="next">Next ▶</button>
-        <button id="rand">Go to random</button>
-      </div>
-      <div class="meta" id="currentNote"></div>
-    </div>
-  </div>
+<div id="results">
+  <h2>Your Heatmap</h2>
+  <div class="grid" id="grid"></div>
+</div>
 
-  <div class="panel">
-    <h3 style="margin-top:0">Heatmap (live preview)</
+<script>
+const chars = ["的","一","是","不","了","在","人","有","我","他","这","个","们","中","来","上","大","为","和","国",
+               "地","到","以","说","时","要","就","出","会","可","也","你","对","生","能","而","子","那","得","于",
+               "着","下","自","之","年","过","发","后","作","里","用","道","行","所","然","家","种","事"];
+let index = 0;
+let answers = [];
+
+function startQuiz() {
+  document.getElementById("start").style.display = "none";
+  document.getElementById("quiz").style.display = "block";
+  showChar();
+}
+
+function showChar() {
+  if (index < chars.length) {
+    document.getElementById("char").textContent = chars[index];
+  } else {
+    finishQuiz();
+  }
+}
+
+function answer(cat) {
+  answers.push({char: chars[index], cat: cat});
+  index++;
+  showChar();
+}
+
+function finishQuiz() {
+  document.getElementById("quiz").style.display = "none";
+  document.getElementById("results").style.display = "block";
+  const grid = document.getElementById("grid");
+  answers.forEach(a => {
+    const div = document.createElement("div");
+    div.className = "cell " + a.cat;
+    div.textContent = a.char;
+    grid.appendChild(div);
+  });
+}
+</script>
+
+</body>
+</html>
