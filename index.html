@@ -1,38 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>SUBTLEX-CH Top 50 Quiz</title>
-  <style>
-    body { font-family: sans-serif; margin: 20px; text-align: center; }
-    #quiz, #results { display: none; }
-    .char { font-size: 60px; margin: 30px; }
-    button { padding: 10px 20px; margin: 5px; font-size: 18px; border-radius: 8px; }
-    .grid { display: grid; grid-template-columns: repeat(10, 64px); gap: 8px; justify-content: center; margin-top: 20px; }
-    .cell { width: 64px; height: 64px; display:flex;align-items:center;justify-content:center;font-size:30px;border-radius:10px; }
-    .a { background:#63C384; } /* know */
-    .b { background:#FFD966; } /* review */
-    .c { background:#FF7373; } /* don't know */
-  </style>
+<meta charset="UTF-8">
+<title>SUBTLEX-CH Top 50 Quiz</title>
+<style>
+body { font-family: sans-serif; text-align: center; margin: 20px; }
+h1 { margin-bottom: 20px; }
+.char { font-size: 60px; margin: 30px; }
+button { padding: 10px 20px; margin: 5px; font-size: 18px; border-radius: 8px; cursor:pointer; }
+.grid { display: grid; grid-template-columns: repeat(10, 64px); gap: 8px; justify-content: center; margin-top: 20px; }
+.cell { width: 64px; height: 64px; display:flex; align-items:center; justify-content:center; font-size:30px; border-radius:10px; }
+.a { background:#63C384; } /* know */
+.b { background:#FFD966; } /* review */
+.c { background:#FF7373; } /* don't know */
+</style>
 </head>
 <body>
 
 <h1>SUBTLEX-CH Top 50 Quiz</h1>
+
 <div id="start">
-  <p>Test yourself on the 50 most frequent Chinese characters (SUBTLEX-CH).</p>
-  <button onclick="startQuiz()">Start Quiz</button>
+<p>Click below to start the quiz:</p>
+<button onclick="startQuiz()">Start Quiz</button>
 </div>
 
-<div id="quiz">
-  <div class="char" id="char"></div>
-  <button onclick="answer('a')">a = Know well</button>
-  <button onclick="answer('b')">b = Review</button>
-  <button onclick="answer('c')">c = Don't know</button>
+<div id="quiz" style="display:none;">
+<div class="char" id="char"></div>
+<button onclick="answer('a')">a = Know well</button>
+<button onclick="answer('b')">b = Review</button>
+<button onclick="answer('c')">c = Don't know</button>
 </div>
 
-<div id="results">
-  <h2>Your Heatmap</h2>
-  <div class="grid" id="grid"></div>
+<div id="results" style="display:none;">
+<h2>Your Heatmap</h2>
+<div class="grid" id="grid"></div>
 </div>
 
 <script>
@@ -42,36 +43,36 @@ const chars = ["的","一","是","不","了","在","人","有","我","他","这"
 let index = 0;
 let answers = [];
 
-function startQuiz() {
-  document.getElementById("start").style.display = "none";
-  document.getElementById("quiz").style.display = "block";
-  showChar();
+function startQuiz(){
+    document.getElementById("start").style.display = "none";
+    document.getElementById("quiz").style.display = "block";
+    showChar();
 }
 
-function showChar() {
-  if (index < chars.length) {
-    document.getElementById("char").textContent = chars[index];
-  } else {
-    finishQuiz();
-  }
+function showChar(){
+    if(index < chars.length){
+        document.getElementById("char").textContent = chars[index];
+    } else {
+        finishQuiz();
+    }
 }
 
-function answer(cat) {
-  answers.push({char: chars[index], cat: cat});
-  index++;
-  showChar();
+function answer(cat){
+    answers.push({char: chars[index], cat: cat});
+    index++;
+    showChar();
 }
 
-function finishQuiz() {
-  document.getElementById("quiz").style.display = "none";
-  document.getElementById("results").style.display = "block";
-  const grid = document.getElementById("grid");
-  answers.forEach(a => {
-    const div = document.createElement("div");
-    div.className = "cell " + a.cat;
-    div.textContent = a.char;
-    grid.appendChild(div);
-  });
+function finishQuiz(){
+    document.getElementById("quiz").style.display = "none";
+    document.getElementById("results").style.display = "block";
+    const grid = document.getElementById("grid");
+    answers.forEach(a=>{
+        const div = document.createElement("div");
+        div.className = "cell " + a.cat;
+        div.textContent = a.char;
+        grid.appendChild(div);
+    });
 }
 </script>
 
