@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>SUBTLEX-CH Top 100 Quiz</title>
-  <style>
-    body { font-family: sans-serif; text-align: center; margin: 20px; }
-    h1 { margin-bottom: 20px; }
-    .char { font-size: 60px; margin: 30px; }
-    button { padding: 10px 20px; margin: 5px; font-size: 18px; border-radius: 8px; cursor: pointer; }
-    .grid { display: grid; grid-template-columns: repeat(10, 64px); gap: 8px; justify-content: center; margin-top: 20px; }
-    .cell { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 30px; border-radius: 10px; }
-    .a { background: #63C384; } /* know */
-    .b { background: #FFD966; } /* review */
-    .c { background: #FF7373; } /* don't know */
-  </style>
+<meta charset="UTF-8">
+<title>SUBTLEX-CH Top 100 Quiz</title>
+<style>
+body { font-family: sans-serif; text-align: center; margin: 20px; }
+h1 { margin-bottom: 20px; }
+.char { font-size: 60px; margin: 30px; }
+.instructions { font-size: 16px; margin-bottom: 20px; color: #333; }
+.grid { display: grid; grid-template-columns: repeat(10, 64px); gap: 8px; justify-content: center; margin-top: 20px; }
+.cell { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 30px; border-radius: 10px; }
+.a { background: #63C384; } /* know well */
+.b { background: #FFD966; } /* review */
+.c { background: #FF7373; } /* don't know */
+</style>
 </head>
 <body>
 
@@ -21,7 +21,12 @@
 
 <div id="start">
   <p>Press the arrow keys to answer:</p>
-  <p><strong>←</strong> = Know well, <strong>↓</strong> = Review, <strong>→</strong> = Don't know</p>
+  <ul class="instructions">
+    <li>← Left Arrow = Know well</li>
+    <li>↓ Down Arrow = Review</li>
+    <li>→ Right Arrow = Don't know</li>
+    <li>↑ Up Arrow = Undo previous answer</li>
+  </ul>
   <button onclick="startQuiz()">Start Quiz</button>
 </div>
 
@@ -35,14 +40,15 @@
 </div>
 
 <script>
+// Top 100 words from SUBTLEX-CH
 const words = [
-  "的", "一", "是", "不", "了", "在", "人", "有", "我", "他", "这", "个", "们", "中", "来", "上", "大", "为", "和", "国",
-  "地", "到", "以", "说", "时", "要", "就", "出", "会", "可", "也", "你", "对", "生", "能", "而", "子", "那", "得", "于",
-  "着", "下", "自", "之", "年", "过", "发", "后", "作", "里", "用", "道", "行", "所", "然", "家", "种", "事", "成", "方",
-  "多", "经", "么", "去", "法", "学", "如", "都", "同", "现", "当", "起", "看", "定", "天", "分", "还", "进", "好", "小",
-  "部", "其", "些", "主", "样", "理", "心", "她", "本", "前", "开", "但", "因", "只", "从", "想", "实", "日", "作", "用",
-  "种", "长", "问", "面", "总", "得", "再", "并", "回", "点", "看", "力", "表", "新", "同", "意", "想", "同", "过", "家",
-  "事", "子", "学", "心", "人", "学", "问", "事", "面", "总", "得", "再", "并", "回", "点", "看", "力", "表", "新", "同"
+  "的","一","是","不","了","在","人","有","我","他","这","个","们","中","来","上","大","为","和","国",
+  "地","到","以","说","时","要","就","出","会","可","也","你","对","生","能","而","子","那","得","于",
+  "着","下","自","之","年","过","发","后","作","里","用","道","行","所","然","家","种","事","成","方",
+  "多","经","么","去","法","学","如","都","同","现","当","起","看","定","天","分","还","进","好","小",
+  "部","其","些","主","样","理","心","她","本","前","开","但","因","只","从","想","实","日","作","用",
+  "种","长","问","面","总","得","再","并","回","点","看","力","表","新","同","意","想","同","过","家",
+  "事","子","学","心","人","学","问","事","面","总","得","再","并","回","点","看","力","表","新","同"
 ];
 let index = 0;
 let answers = [];
@@ -69,6 +75,8 @@ function handleKeyPress(event) {
     recordAnswer("b");
   } else if (event.key === "ArrowRight") {
     recordAnswer("c");
+  } else if (event.key === "ArrowUp") {
+    undoAnswer();
   }
 }
 
@@ -76,6 +84,14 @@ function recordAnswer(category) {
   answers.push({ word: words[index], category: category });
   index++;
   showWord();
+}
+
+function undoAnswer() {
+  if (answers.length > 0) {
+    index--;
+    answers.pop();
+    showWord();
+  }
 }
 
 function finishQuiz() {
