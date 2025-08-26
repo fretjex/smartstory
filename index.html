@@ -88,7 +88,31 @@
       <div class="footer">Legend: green = know · yellow = review · red = don't know</div>
     </div>
   </div>
+  
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
 
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK_cuy55yVI62w3vsK0t6HTM7NhZIXEw8",
+    authDomain: "smart-story-22d60.firebaseapp.com",
+    projectId: "smart-story-22d60",
+    storageBucket: "smart-story-22d60.firebasestorage.app",
+    messagingSenderId: "461206989058",
+    appId: "1:461206989058:web:5234e39d582aa0453bfa1b",
+    measurementId: "G-Y5XSE81L6G"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
+  
 <script>
 /* ============================
    ===  CONFIG: FIREBASE  ===
